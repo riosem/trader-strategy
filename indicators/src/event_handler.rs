@@ -210,89 +210,29 @@ fn backtest_sma_strategy(
     })
 }
 
-// fn macd_strategy(data: &[Candle], short_period: usize, long_period: usize, signal_period: usize) -> Vec<String> {
-//     let mut macd = Macd::new(short_period, long_period, signal_period).unwrap();
-//     let mut position = 0; // 0 = flat, 1 = long, -1 = short
-//     let mut signals = Vec::new();
+fn macd_strategy(data: &[Candle], short_period: usize, long_period: usize, signal_period: usize) -> Vec<String> {
+    let mut macd = Macd::new(short_period, long_period, signal_period).unwrap();
+    let mut position = 0; // 0 = flat, 1 = long, -1 = short
+    let mut signals = Vec::new();
 
-//     for candle in data {
-//         let price = candle.close.parse::<f64>().unwrap_or(0.0);
-//         let macd_val = macd.next(price);
+    for candle in data {
+        let price = candle.close.parse::<f64>().unwrap_or(0.0);
+        let macd_val = macd.next(price);
 
-//         if macd_val > 0.0 && position <= 0 {
-//             info!("Buy at price: {}", price);
-//             signals.push(format!("Buy at price: {}", price));
-//             position = 1;
-//         } else if macd_val < 0.0 && position >= 0 {
-//             info!("Sell at price: {}", price);
-//             signals.push(format!("Sell at price: {}", price));
-//             position = -1;
-//         }
+        if macd_val > 0.0 && position <= 0 {
+            info!("Buy at price: {}", price);
+            signals.push(format!("Buy at price: {}", price));
+            position = 1;
+        } else if macd_val < 0.0 && position >= 0 {
+            info!("Sell at price: {}", price);
+            signals.push(format!("Sell at price: {}", price));
+            position = -1;
+        }
         
-//     }
+    }
 
-//     signals
-// }
-
-// fn macd_strategy_with_positions(
-//     data: &[Candle],
-//     short_period: usize,
-//     long_period: usize,
-//     signal_period: usize,
-//     positions: &[Option<&Position>],
-// ) -> Vec<String> {
-//     let macd = Macd::new(short_period, long_period, signal_period).unwrap();
-//     let position = 0; // 0 = flat, 1 = long, -1 = short
-//     let signals = Vec::new();
-
-//     // First check if there are positions
-//     if positions.is_empty() {
-//         let max_position_price = 0.0;
-//         let min_position_price = 0.0;
-//         let stop_loss = 0.0; // No positions, no stop-loss
-//         let take_profit = 0.0; // No positions, no take-profit
-//     } else {
-//         let max_position_price = positions.iter()
-//             .filter_map(|p| p.as_ref().and_then(|pos| pos.average_filled_price.parse::<f64>().ok()))
-//             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-//             .unwrap_or(0.0);
-//         let min_position_price = positions.iter()
-//             .filter_map(|p| p.as_ref().and_then(|pos| pos.average_filled_price.parse::<f64>().ok()))
-//             .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-//             .unwrap_or(0.0);
-//         let stop_loss = min_position_price * 0.95; // 5% below min entry
-//         let take_profit = max_position_price * 1.10; // 10% above max entry
-//     }
-
-//     for candle in data {
-//         let price = candle.close.parse::<f64>().unwrap_or(0.0);
-//         // info!(macd.next(price));
-//         // if macd.value().is_some() {
-//         //     let macd_val = macd.value().unwrap();
-
-//         //     if macd_val > 0.0 && position <= 0 && price < max_position_price {
-//         //         info!("Buy at price: {}", price);
-//         //         signals.push(format!("Buy at price: {}", price));
-//         //         position = 1;
-//         //     } else if macd_val < 0.0 && position >= 0 && price > min_position_price
-    
-//         //         position = -1;
-//         //     }
-//         // }
-
-//         // if position > 0 && price <= stop_loss {
-//         //     info!("Stop-loss triggered at price: {}", price);
-//         //     signals.push(format!("Stop-loss sell at price: {}", price));
-//         //     position = 0;
-//         // }
-//         // if position > 0 && price >= take_profit {
-//         //     info!("Take-profit triggered at price: {}", price);
-//         //     signals.push(format!("Take-profit sell at price: {}", price));
-//         //     position = 0;
-//         // }
-//     }
-//     signals
-// }
+    signals
+}
 
 
 pub async fn function_handler(event: LambdaEvent<Value>) -> Result<Value, Error> {
@@ -414,113 +354,6 @@ mod tests {
         let signals = sma_cross_strategy_with_positions(&data, 2, 3, &positions);
     }
 
-    // #[test]
-    // fn test_macd_strategy(){
-    //     // This data will cause MACD to cross above and below the signal line
-    //     let data = vec![
-    //         Candle { close: "1.0".to_string() },
-    //         Candle { close: "1.2".to_string() },
-    //         Candle { close: "1.4".to_string() },
-    //         Candle { close: "1.6".to_string() },
-    //         Candle { close: "1.8".to_string() },
-    //         Candle { close: "2.0".to_string() },
-    //         Candle { close: "2.2".to_string() },
-    //         Candle { close: "2.4".to_string() },
-    //         Candle { close: "2.6".to_string() },
-    //         Candle { close: "2.8".to_string() },
-    //         Candle { close: "3.0".to_string() }, // Uptrend, should trigger buy
-    //         Candle { close: "2.8".to_string() },
-    //         Candle { close: "2.6".to_string() },
-    //         Candle { close: "2.4".to_string() },
-    //         Candle { close: "2.2".to_string() },
-    //         Candle { close: "2.0".to_string() },
-    //         Candle { close: "1.8".to_string() },
-    //         Candle { close: "1.6".to_string() },
-    //         Candle { close: "1.4".to_string() },
-    //         Candle { close: "1.2".to_string() }, // Downtrend, should trigger sell
-    //     ];
-    //     let signals = macd_strategy(&data, 12, 26, 9);
-    //     assert!(signals.iter().any(|s| s.contains("Buy at price")), "Should generate a buy signal");
-    //     assert!(signals.iter().any(|s| s.contains("Sell at price")), "Should generate a sell signal");
-    // }
-
-    // #[test]
-    // fn test_macd_strategy_with_positions(){
-    //     // This data will cause MACD to cross above and below the signal line
-    //     let data = vec![
-    //         Candle { close: "1.0".to_string() },
-    //         Candle { close: "1.2".to_string() },
-    //         Candle { close: "1.4".to_string() },
-    //         Candle { close: "1.6".to_string() },
-    //         Candle { close: "1.8".to_string() },
-    //         Candle { close: "2.0".to_string() },
-    //         Candle { close: "2.2".to_string() },
-    //         Candle { close: "2.4".to_string() },
-    //         Candle { close: "2.6".to_string() },
-    //         Candle { close: "2.8".to_string() },
-    //         Candle { close: "3.0".to_string() }, // Uptrend, should trigger buy
-    //         Candle { close: "2.8".to_string() },
-    //         Candle { close: "2.6".to_string() },
-    //         Candle { close: "2.4".to_string() },
-    //         Candle { close: "2.2".to_string() },
-    //         Candle { close: "2.0".to_string() },
-    //         Candle { close: "1.8".to_string() },
-    //         Candle { close: "1.6".to_string() },
-    //         Candle { close: "1.4".to_string() },
-    //         Candle { close: "1.2".to_string() }, // Downtrend, should trigger sell
-    //     ];
-    //     let positions = vec![
-    //         Position {
-    //             global_product_id: "prod1".to_string(),
-    //             component_id: "comp1".to_string(),
-    //             position_id: "pos1".to_string(),
-    //             ttl: None,
-    //             strategy_term: None,
-    //             order_id: "order1".to_string(),
-    //             product_id: "prod1".to_string(),
-    //             user_id: "user1".to_string(),
-    //             client_order_id: "client1".to_string(),
-    //             order_configuration: None,
-    //             edit_history: None,
-    //             leverage: "1x".to_string(),
-    //             margin_type: "isolated".to_string(),
-    //             retail_portfolio_id: "portfolio1".to_string(),
-    //             originating_order_id: "orig_order1".to_string(),
-    //             attached_order_id: "attached_order1".to_string(),
-    //             attached_order_configuration: None,
-    //             side: "buy".to_string(),
-    //             status: "filled".to_string(),
-    //             time_in_force: "GTC".to_string(),
-    //             created_time: "2023-10-01T00:00:00Z".to_string(),
-    //             completion_percentage: "100%".to_string(),
-    //             filled_size: "10.0".to_string(),
-    //             average_filled_price: "1.0".to_string(),
-    //             fee: "0.1".to_string(),
-    //             number_of_fills: "1".to_string(),
-    //             filled_value: "10.0".to_string(),
-    //             pending_cancel: false,
-    //             size_in_quote: true,
-    //             total_fees: "0.1".to_string(),
-    //             size_inclusive_of_fees: true,
-    //             total_value_after_fees: "9.9".to_string(),
-    //             trigger_status: "none".to_string(),
-    //             order_type: "market".to_string(),
-    //             reject_reason: "".to_string(),
-    //             settled: true,
-    //             product_type: "spot".to_string(),
-    //             reject_message: "".to_string(),
-    //             cancel_message: "".to_string(),
-    //             order_placement_source: "api".to_string(),
-    //             outstanding_hold_amount: "0.0".to_string(),
-    //             is_liquidation: false,
-    //             last_fill_time: None,
-    //         }
-    //     ];
-    //     let signals = macd_strategy_with_positions(&data, 12, 26, 9, &positions);
-    //     assert!(signals.iter().any(|s| s.contains("Buy at price")), "Should generate a buy signal");
-    //     assert!(signals.iter().any(|s| s.contains("Sell at price")), "Should generate a sell signal");
-    // }
-
     #[test]
     fn test_sma_windows(){
         let mut balance = 20000.0;
@@ -588,9 +421,9 @@ mod tests {
             }
         }
 
-        // info!("Backtest Results: {:?}", results);
-        // println!("Backtest Results: {:?}", results);
-        // assert!(results["Final Balance"].as_f64().unwrap() > balance, "Final balance should be greater than initial balance");
+        info!("Backtest Results: {:?}", results);
+        println!("Backtest Results: {:?}", results);
+        assert!(results["Final Balance"].as_f64().unwrap() > balance, "Final balance should be greater than initial balance");
     }
 
     
