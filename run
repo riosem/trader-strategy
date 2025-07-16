@@ -1,0 +1,126 @@
+#!/bin/bash
+
+# $ENV
+# $REGION
+# $ACTION
+# $APP
+
+ARGS="$@"
+
+ACTION=$1
+
+install_serverless_dependencies(){
+    cd ./serverless
+    npm install -g serverless@3.38.0
+    npm install
+    cd ..
+
+    install_python_dependencies
+}
+
+run_unit_tests(){
+    vars=$(get_vars)
+    cd ./serverless
+    pytest -m unit_tests -vv $vars --cov=. --cov-config=.coveragerc || exit 1
+    cd ..
+}
+
+run_back_tests(){
+    vars=$(get_vars)
+    cd ./serverless
+    pytest -m backtest -vv $vars --cov=. --cov-config=.coveragerc || exit 1
+    cd ..
+}
+
+run_func_tests(){
+    cd ./serverless
+    pytest -m functional_tests_market -vv || exit 1
+    cd ..
+}
+
+install_python_dependencies(){
+    cd ./serverless
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+    cd ..
+}
+
+install_python_dev_dependencies(){
+    cd ./serverless
+    python -m pip install --upgrade pip
+    pip install -r requirements-dev.txt
+    cd ..
+}
+
+
+deploy_serverless(){
+    cd ./serverless
+    pip install -r requirements.txt
+    serverless plugin install -n serverless-deployment-bucket
+    serverless plugin install -n serverless-python-requirements
+    serverless plugin install -n serverless-plugin-log-retention
+    serverless deploy --stage $ENV --region $REGION || exit 1
+    rm -r ./.serverless
+    cd ..
+}
+
+destroy_serverless(){
+    cd ./serverless
+    serverless remove --stage $ENV --region $REGION || exit 1
+    cd ..
+}
+
+install_ta_lib(){
+    # TODO: download ta lib tar file or have a docker file?
+    cd ./serverless
+    tar -xzf ta-lib-0.6.4-src.tar.gz || exit 1
+    cd ./ta-lib-0.6.4 || exit 1
+    ./configure || exit 1
+    make || exit 1
+    sudo make install || exit 1
+    cd ../..
+}
+
+get_vars(){
+    res=""
+    for arg in $ARGS;
+    do
+        if [ $arg != $ACTION ]; then
+            res+="$arg "
+        fi
+    done
+    echo $res 
+}
+
+echo $ACTION $ENV $REGION
+
+if [ $ACTION == "deploy-service" ];
+then
+    echo "Deploying Service"
+    install_serverless_dependencies
+    deploy_serverless
+elif [ $ACTION == "destroy-service" ];
+then
+    echo "Destroying Service"
+    install_serverless_dependencies
+    destroy_serverless
+elif [ $ACTION == "functional-tests" ];
+then
+    echo "Functional Tests"
+    install_python_dependencies
+    run_func_tests
+elif [ $ACTION == "setup-python" ];
+then
+    echo "Setup Python"
+    install_ta_lib
+    install_python_dependencies
+elif [ $ACTION == "unit-tests" ];
+then
+    echo "Unit Tests"
+    install_python_dev_dependencies
+    run_unit_tests
+elif [ $ACTION == "back-tests" ];
+then
+    echo "Back Tests"
+    run_back_tests
+fi

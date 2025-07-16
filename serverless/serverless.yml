@@ -1,0 +1,107 @@
+service: trader-strategy
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  region: ${opt:region}
+  runtime: python3.10
+  deploymentBucket:
+    name: serverless-deploy-bucket-global-emr
+    serverSideEncryption: AES256
+  timeout: 60
+  environment:
+    DEPLOY_ENV: ${self:custom.stage}
+    PROVIDER_API_KEY: ${self:custom.env.provider_api_key}
+    ASSISTANT_API_KEY: ${self:custom.env.assistant_api_key}
+    CONFIG_URL: ${self:custom.env.config_url}
+    DEBUG: FALSE
+    QUEUE_POST_ORDER_URL: ${self:custom.env.queue_post_order_url}
+    QUEUE_DATA_COLLECTION_URL: ${self:custom.env.queue_data_collection_url}
+    PROVIDER_URL: ${self:custom.env.provider_url}
+    AUTH0_PROVIDERS_CLIENT_ID: ${self:custom.env.auth0_providers_client_id}
+    AUTH0_PROVIDERS_CLIENT_SECRET: ${self:custom.env.auth0_providers_client_secret}
+    AUTH0_PROVIDERS_AUDIENCE: ${self:custom.env.auth0_providers_audience}
+    AUTH0_ASSISTANT_CLIENT_ID: ${self:custom.env.auth0_assistant_client_id}
+    AUTH0_ASSISTANT_CLIENT_SECRET: ${self:custom.env.auth0_assistant_client_secret}
+    AUTH0_ASSISTANT_AUDIENCE: ${self:custom.env.auth0_assistant_audience}
+    AUTH0_OAUTH_URL: ${self:custom.env.auth0_oauth_url}
+    SIMULATOR_URL: ${self:custom.env.simulator_url}
+    SIMULATOR_LAMBDA_NAME: ${self:custom.env.simulator_lambda_name}
+    TA_INDICATORS_LAMBDA_NAME: ${self:custom.env.ta_indicators_lambda_name}
+    CACHE_TABLE_NAME: ${self:custom.cache_table_name}
+
+
+  tags:
+    app_name: trader-strategy-${opt:stage, 'dev'}
+    Environment: ${opt:stage, 'dev'}
+    Service: trader-strategy
+
+custom:
+  stage: ${opt:stage, 'dev'}
+  env: ${file(sls_envs.yml):${self:custom.stage}}
+  provider_api_key: ${param:provider_api_key, '${self:custom.env.provider_api_key}'}
+  config_url: ${param:config_url, '${self:custom.env.config_url}'}
+  provider_url: ${param:provider_url, '${self:custom.env.provider_url}'}
+  auth0_providers_client_id: ${param:auth0_providers_client_id, '${self:custom.env.auth0_providers_client_id}'}
+  auth0_providers_client_secret: ${param:auth0_providers_client_secret, '${self:custom.env.auth0_providers_client_secret}'}
+  auth0_providers_audience: ${param:auth0_providers_audience, '${self:custom.env.auth0_providers_audience}'}
+  auth0_assistant_client_id: ${param:auth0_assistant_client_id, '${self:custom.env.auth0_assistant_client_id}'}
+  auth0_assistant_client_secret: ${param:auth0_assistant_client_secret, '${self:custom.env.auth0_assistant_client_secret}'}
+  auth0_assistant_audience: ${param:auth0_assistant_audience, '${self:custom.env.auth0_assistant_audience}'}
+  auth0_oauth_url: ${param:auth0_oauth_url, '${self:custom.env.auth0_oauth_url}'}
+  cache_table_name: ${param:cache_table_name, '${self:custom.env.cache_table_name}'}
+  risk_queue_url: ${self:custom.env.risk_queue_url}
+
+  logRetentionInDays: 7
+  pythonRequirements:
+    dockerizePip: true
+    layer:
+      compatibleRuntimes:
+        - python3.10
+
+functions:
+  coinbase:
+    logRetentionInDays: ${self:custom.logRetentionInDays}
+    handler: functions.strategies.handler
+    role: arn:aws:iam::${aws.accountId}:role/${self:service}-role-blue-${self:custom.stage}-${self:provider.region}
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
+    events:
+      - sqs:
+          arn: !GetAtt StrategyQueue.Arn
+          batchSize: 1
+    reservedConcurrency: 3
+    environment:
+      QUEUE_RISK_URL: ${self:custom.risk_queue_url}
+
+resources:
+  Resources:
+    StrategyQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        FifoQueue: true
+        MessageRetentionPeriod: 60
+        QueueName: ${self:service}-queue-${self:custom.stage}.fifo
+        VisibilityTimeout: 300
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt StrategyDlq.Arn
+          maxReceiveCount: 1
+        Tags:
+          - Key: app_name
+            Value: ${self:provider.tags.app_name}
+    StrategyDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        FifoQueue: true
+        MessageRetentionPeriod: 86400
+        QueueName: ${self:service}-dlq-${self:custom.stage}.fifo
+        VisibilityTimeout: 300
+        Tags:
+          - Key: app_name
+            Value: ${self:provider.tags.app_name}
+
+plugins:
+  - serverless-deployment-bucket
+  - serverless-python-requirements
+  - serverless-plugin-log-retention

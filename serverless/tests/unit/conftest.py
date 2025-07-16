@@ -1,0 +1,1627 @@
+import boto3
+import pytest
+import os
+
+from utils.common import Env
+
+
+@pytest.fixture()
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_REGION"] = Env.REGION
+    os.environ["AWS_DEFAULT_REGION"] = Env.REGION
+
+
+@pytest.fixture(autouse=True)
+def mock_aws_sqs(aws_credentials):
+    from moto import mock_aws
+
+    with mock_aws():
+        conn = boto3.client("sqs", Env.REGION)
+        queue_name = Env.QUEUE_RISK_URL.split("/")[-1]
+        conn.create_queue(QueueName=queue_name, Attributes={"FifoQueue": "true"})
+
+        yield conn
+
+
+@pytest.fixture(autouse=True)
+def mock_aws_dynamo(aws_credentials):
+    from moto import mock_aws
+
+    with mock_aws():
+        conn = boto3.resource("dynamodb", Env.REGION)
+        conn.create_table(
+            TableName="cache",
+            KeySchema=[
+                {"AttributeName": "cache_key", "KeyType": "HASH"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "cache_key", "AttributeType": "S"},
+            ],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+
+        yield conn
+
+
+@pytest.fixture(autouse=True)
+def mock_aws_scheduler(aws_credentials):
+    from moto import mock_aws
+
+    with mock_aws():
+        conn = boto3.client("scheduler", Env.REGION)
+        yield conn
+
+
+@pytest.fixture
+def product_id():
+    return "BTC-USD"
+
+
+@pytest.fixture
+def provider_url():
+    return Env.PROVIDER_URL
+
+
+@pytest.fixture
+def simulator_url():
+    return Env.SIMULATOR_URL
+
+
+@pytest.fixture
+def portfolio_balance():
+    return "1000.00"
+
+
+@pytest.fixture
+def portfolio_asset():
+    return "USD"
+
+
+@pytest.fixture
+def product(product_id):
+    return {
+        "product_id": product_id,
+        "price": "58382.78",
+        "price_percentage_change_24h": "-4.23785541063979",
+        "volume_24h": "12900.84201012",
+        "volume_percentage_change_24h": "15.2934477676346",
+        "base_increment": "0.00000001",
+        "quote_increment": "0.01",
+        "quote_min_size": "1",
+        "quote_max_size": "150000000",
+        "base_min_size": "0.00000001",
+        "base_max_size": "3400",
+        "base_name": "Bitcoin",
+        "quote_name": "USDC",
+        "watched": False,
+        "is_disabled": False,
+        "new": False,
+        "status": "online",
+        "cancel_only": False,
+        "limit_only": False,
+        "post_only": False,
+        "trading_disabled": False,
+        "auction_mode": False,
+        "product_type": "SPOT",
+        "quote_currency_id": "USDC",
+        "base_currency_id": "BTC",
+        "fcm_trading_session_details": None,
+        "mid_market_price": "",
+        "alias": "BTC-USD",
+        "alias_to": [],
+        "base_display_symbol": "BTC",
+        "quote_display_symbol": "USD",
+        "view_only": False,
+        "price_increment": "0.01",
+        "display_name": "BTC-USDC",
+        "product_venue": "CBE",
+        "approximate_quote_24h_volume": "753187020.89",
+    }
+
+
+@pytest.fixture
+def config_response(status, product_id, is_disabled, order_configuration):
+    return {
+        "config": {
+            "product_id": product_id,
+            "price": "58382.78",
+            "price_percentage_change_24h": "-4.23785541063979",
+            "volume_24h": "12900.84201012",
+            "volume_percentage_change_24h": "15.2934477676346",
+            "base_increment": "0.00000001",
+            "quote_increment": "0.01",
+            "quote_min_size": "1",
+            "quote_max_size": "150000000",
+            "base_min_size": "0.00000001",
+            "base_max_size": "3400",
+            "base_name": "Bitcoin",
+            "quote_name": "USDC",
+            "watched": False,
+            "is_disabled": is_disabled,
+            "new": False,
+            "status": status,
+            "cancel_only": False,
+            "limit_only": False,
+            "post_only": False,
+            "trading_disabled": False,
+            "auction_mode": False,
+            "product_type": "SPOT",
+            "quote_currency_id": "USDC",
+            "base_currency_id": "BTC",
+            "fcm_trading_session_details": None,
+            "mid_market_price": "",
+            "alias": "BTC-USD",
+            "alias_to": [],
+            "base_display_symbol": "BTC",
+            "quote_display_symbol": "USD",
+            "view_only": False,
+            "price_increment": "0.01",
+            "display_name": "BTC-USDC",
+            "product_venue": "CBE",
+            "approximate_quote_24h_volume": "753187020.89",
+            "config_quote_min_size": "1.00",
+            "config_quote_max_size": "1.00",
+            "maxmin_pct_threshold": "1.5",
+            "profit_target": "1.5",
+            "toggle": True,
+        }
+    }
+
+
+@pytest.fixture
+def config(config_response):
+    return config_response["config"]
+
+
+@pytest.fixture
+def is_disabled():
+    return False
+
+
+@pytest.fixture
+def status():
+    return "online"
+
+
+@pytest.fixture
+def state():
+    return "ENABLED"
+
+
+@pytest.fixture
+def provider():
+    return "COINBASE"
+
+
+@pytest.fixture()
+def context():
+    return {}
+
+
+@pytest.fixture
+def correlation_id():
+    return "correlation-id"
+
+
+@pytest.fixture
+def portfolio_balance():
+    return "1000.00"
+
+
+@pytest.fixture
+def provider_order_id():
+    return "provider-order-id"
+
+
+@pytest.fixture
+def epoch_order_id():
+    return "epoch-order-id"
+
+
+@pytest.fixture
+def service_id(epoch_order_id):
+    return f"ORDERS:{epoch_order_id}"
+
+
+@pytest.fixture
+def total_value_after_fees():
+    return 2
+
+
+@pytest.fixture
+def at_price():
+    return "1.00"
+
+
+@pytest.fixture
+def base_size():
+    return "1.00"
+
+
+@pytest.fixture
+def quote_size():
+    return "1.00"
+
+
+@pytest.fixture
+def last_order_status():
+    return "FILLED"
+
+
+@pytest.fixture
+def last_order_at_price():
+    return "0.90"
+
+
+@pytest.fixture
+def last_order_total_value_after_fees():
+    return "0.90"
+
+
+@pytest.fixture
+def last_order_size():
+    return "1.00"
+
+
+@pytest.fixture
+def last_order_filled_size():
+    return "1.00"
+
+
+@pytest.fixture
+def last_order_price():
+    return "1.00"
+
+
+@pytest.fixture
+def last_order_id():
+    return "30dlK03l-930c-415a-9d6e-ijk83msse"
+
+
+@pytest.fixture
+def last_order_user_id():
+    return "user-id"
+
+
+@pytest.fixture
+def last_order_side():
+    return "BUY"
+
+
+@pytest.fixture
+def last_order_client_order_id():
+    return "client-order-id"
+
+
+@pytest.fixture
+def last_order_service_id(last_epoch_order_id):
+    return f"ORDERS:{last_epoch_order_id}"
+
+
+@pytest.fixture
+def last_epoch_order_id():
+    return "last-epoch-order-id"
+
+
+@pytest.fixture
+def last_order_created_time():
+    return "2024-08-15T02:54:47.931547+00:00"
+
+
+@pytest.fixture
+def created_time():
+    return "2024-08-15T02:59:47.931547+00:00"
+
+
+@pytest.fixture
+def last_order(
+    last_order_total_value_after_fees,
+    last_order_price,
+    last_order_at_price,
+    last_order_size,
+    last_order_filled_size,
+    last_order_status,
+    last_order_service_id,
+    last_order_side,
+    last_order_created_time,
+):
+    return {
+        "id": "order_id",
+        "status": last_order_status,
+        "price": last_order_price,
+        "size": last_order_size,
+        "service_id": last_order_service_id,
+        "total_value_after_fees": last_order_total_value_after_fees,
+        "side": last_order_side,
+        "average_filled_price": last_order_at_price,
+        "filled_size": last_order_filled_size,
+        "created_time": last_order_created_time,
+    }
+
+
+@pytest.fixture
+def order_configuration(quote_size, base_size):
+    return {
+        "market_market_ioc": {
+            "quote_size": quote_size,
+            "base_size": base_size,
+        }
+    }
+
+
+@pytest.fixture
+def order(
+    service_id,
+    # average_filled_price,
+    # filled_size,
+    # order_id,
+    order_configuration,
+    status,
+    total_value_after_fees,
+    created_time,
+):
+    return {
+        # "order_id": order_id,
+        "status": status,
+        "service_id": service_id,
+        "side": "BUY",
+        # "average_filled_price": average_filled_price,
+        # "filled_size": filled_size,
+        "order_configuration": order_configuration,
+        "total_value_after_fees": total_value_after_fees,
+        "created_time": created_time,
+    }
+
+
+@pytest.fixture
+def get_ticker_response():
+    return {
+        "trades": [
+            {
+                "trade_id": 20153558,
+                "price": "100000.00",
+                "size": "0.01000000",
+                "time": "2015-02-06T20:50:02.000000Z",
+                "bid": "100000.00",
+                "ask": "100000.00",
+                "volume": "0.01000000",
+            }
+        ]
+    }
+
+
+@pytest.fixture()
+def get_product_response(is_disabled, status, product_id):
+    return {
+        "id": "f8c9efa6-748d-4f02-9a9d-b108149d0bb5",
+        "created": "2024-04-10T16:04:23.158274Z",
+        "updated": "2024-04-10T16:04:23.158283Z",
+        "enabled": False,
+        "product_id": product_id,
+        "price": "1.625",
+        "price_percentage_change_24h": "-7.354618",
+        "volume_24h": "47513.2",
+        "volume_percentage_change_24h": "81.89481",
+        "base_increment": "0.01",
+        "quote_increment": "0.001",
+        "quote_min_size": "1",
+        "quote_max_size": "10000000",
+        "base_min_size": "0.4",
+        "base_max_size": "4000000",
+        "base_name": "Echelon",
+        "quote_name": "USD Coin",
+        "watched": False,
+        "is_disabled": is_disabled,
+        "new": False,
+        "status": status,
+        "cancel_only": False,
+        "limit_only": False,
+        "post_only": False,
+        "trading_disabled": False,
+        "auction_mode": False,
+        "product_type": "SPOT",
+        "quote_currency_id": "USDC",
+        "base_currency_id": "PRIME",
+        "fcm_trading_session_details": None,
+        "mid_market_price": "1.625",
+        "alias": "PRIME-USD",
+        "alias_to": "test",
+        "base_display_symbol": "PRIME",
+        "quote_display_symbol": "USD",
+        "view_only": False,
+        "price_increment": "0.001",
+    }
+
+
+@pytest.fixture
+def order_type():
+    return "market_market_ioc"
+
+
+@pytest.fixture
+def mock_assistant_notifications(requests_mock):
+    return requests_mock.post(
+        "https://assistant-url.com/notifications",
+        json="Success",
+        status_code=200,
+    )
+
+
+@pytest.fixture
+def mock_assistant_notifications_500_error(requests_mock):
+    return requests_mock.post(
+        "https://assistant-url.com/notifications",
+        json={"message": "Internal Server Error"},
+        status_code=500,
+    )
+
+
+@pytest.fixture
+def mock_assistant_notifications_timeout_error(requests_mock):
+    from requests.exceptions import Timeout
+
+    return requests_mock.post(
+        "https://assistant-url.com/notifications",
+        exc=Timeout("Timeout error"),
+    )
+
+
+@pytest.fixture
+def mock_provider_get_order(requests_mock, provider_order_id, order):
+    return requests_mock.get(
+        f"{Env.PROVIDER_URL}/api/v3/brokerage/orders/historical/{provider_order_id}",
+        status_code=200,
+        json={"order": order},
+    )
+
+
+@pytest.fixture()
+def mock_provider_get_order_404_error(requests_mock, provider_order_id):
+    return requests_mock.get(
+        f"{Env.PROVIDER_URL}/api/v3/brokerage/orders/historical/{provider_order_id}",
+        status_code=404,
+        json={"message": "Order not found"},
+    )
+
+
+@pytest.fixture
+def mock_provider_get_order_timeout_error(requests_mock, provider_order_id):
+    return requests_mock.get(
+        f"{Env.PROVIDER_URL}/api/v3/brokerage/orders/historical/{provider_order_id}",
+        exc=TimeoutError,
+    )
+
+
+@pytest.fixture(autouse=True)
+def mock_post_oauth_token_success(requests_mock):
+    url = Env.AUTH0_OAUTH_URL
+    return requests_mock.post(
+        url,
+        json={"access_token": "test_access_token"},
+        status_code=200,
+    )
+
+
+@pytest.fixture
+def mock_post_oauth_token_400_error(requests_mock):
+    url = Env.AUTH0_OAUTH_URL
+    return requests_mock.post(
+        url,
+        json={"message": "Bad Request"},
+        status_code=400,
+    )
+
+
+@pytest.fixture
+def mock_post_oauth_token_timeout_error(requests_mock):
+    url = Env.AUTH0_OAUTH_URL
+    return requests_mock.post(
+        url,
+        exc=TimeoutError,
+    )
+
+
+import json
+import pytest
+
+from http import HTTPStatus
+from utils.common import Env
+
+
+@pytest.fixture
+def positions():
+    # Position bought at a lower price, so with the right candles, it's in profit
+    return [
+        {
+            "global_product_id": "COINBASE.BTC.USD",
+            "component_id": "123XYZ.ENTRY",
+            "position_id": "position-id",
+            "order_id": "order-id",
+            "product_id": "BTC-USD",
+            "user_id": "user-id",
+            "order_configuration": {
+                "market_market_ioc": {
+                    "quote_size": "1.5",
+                    "rfq_enabled": False,
+                    "rfq_disabled": False,
+                }
+            },
+            "side": "BUY",
+            "client_order_id": "cliendt-order-id",
+            "status": "FILLED",
+            "time_in_force": "IMMEDIATE_OR_CANCEL",
+            "created_time": "2024-10-29T18:26:03.426421Z",
+            "completion_percentage": "100",
+            "filled_size": "0.0000203165253428",
+            "average_filled_price": "70000",
+            "fee": "",
+            "number_of_fills": "2",
+            "filled_value": "1.4822134387351779",
+            "pending_cancel": False,
+            "size_in_quote": True,
+            "total_fees": "0.0177865612648221",
+            "size_inclusive_of_fees": True,
+            "total_value_after_fees": "1.5",
+            "trigger_status": "INVALID_ORDER_TYPE",
+            "order_type": "MARKET",
+            "reject_reason": "REJECT_REASON_UNSPECIFIED",
+            "settled": True,
+            "product_type": "SPOT",
+            "reject_message": "",
+            "cancel_message": "",
+            "order_placement_source": "RETAIL_ADVANCED",
+            "outstanding_hold_amount": "0",
+            "is_liquidation": False,
+            "last_fill_time": "2024-10-29T18:26:03.533549546Z",
+            "edit_history": [],
+            "leverage": "",
+            "margin_type": "UNKNOWN_MARGIN_TYPE",
+            "retail_portfolio_id": "retail-portfolio-uuid",
+            "originating_order_id": "",
+            "attached_order_id": "",
+            "attached_order_configuration": None,
+            "ttl": 0
+        }
+    ]
+
+
+@pytest.fixture
+def positions_in_loss():
+    return [
+        {
+            "global_product_id": "COINBASE.BTC.USD",
+            "component_id": "123XYZ.ENTRY",
+            "position_id": "position-id",
+            "order_id": "order-id",
+            "product_id": "BTC-USD",
+            "user_id": "user-id",
+            "order_configuration": {
+                "market_market_ioc": {
+                    "quote_size": "1.5",
+                    "rfq_enabled": False,
+                    "rfq_disabled": False,
+                }
+            },
+            "side": "BUY",
+            "client_order_id": "cliendt-order-id",
+            "status": "FILLED",
+            "time_in_force": "IMMEDIATE_OR_CANCEL",
+            "created_time": "2024-10-29T18:26:03.426421Z",
+            "completion_percentage": "100",
+            "filled_size": "0.0000203165253428",
+            "average_filled_price": "140000",
+            "fee": "",
+            "number_of_fills": "2",
+            "filled_value": "1.4822134387351779",
+            "pending_cancel": False,
+            "size_in_quote": True,
+            "total_fees": "0.0177865612648221",
+            "size_inclusive_of_fees": True,
+            "total_value_after_fees": "1.5",
+            "trigger_status": "INVALID_ORDER_TYPE",
+            "order_type": "MARKET",
+            "reject_reason": "REJECT_REASON_UNSPECIFIED",
+            "settled": True,
+            "product_type": "SPOT",
+            "reject_message": "",
+            "cancel_message": "",
+            "order_placement_source": "RETAIL_ADVANCED",
+            "outstanding_hold_amount": "0",
+            "is_liquidation": False,
+            "last_fill_time": "2024-10-29T18:26:03.533549546Z",
+            "edit_history": [],
+            "leverage": "",
+            "margin_type": "UNKNOWN_MARGIN_TYPE",
+            "retail_portfolio_id": "retail-portfolio-uuid",
+            "originating_order_id": "",
+            "attached_order_id": "",
+            "attached_order_configuration": None,
+            "ttl": 0
+        }
+    ]
+
+
+@pytest.fixture
+def sqs_strategy_event_existing_positions_in_loss_sell(positions_in_loss):
+    return {
+        "Records": [
+            {
+                "messageId": "c80e8021-a70a-42c7-a470-796e1186f753",
+                "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                "body": json.dumps(
+                    {
+                        "correlation_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                        "provider": "COINBASE",
+                        "product_id": "BTC-USD",
+                        "portfolio": {
+                            "portfolio": {
+                                "name": "test",
+                                "uuid": "portfolio-uuid",
+                                "type": "CONSUMER",
+                                "deleted": False,
+                            },
+                            "portfolio_balances": {
+                                "total_balance": {
+                                    "value": "10000.23",
+                                    "currency": "USD",
+                                },
+                                "total_futures_balance": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "total_cash_equivalent_balance": {
+                                    "value": "14.45",
+                                    "currency": "USD",
+                                },
+                                "total_crypto_balance": {
+                                    "value": "19.78",
+                                    "currency": "USD",
+                                },
+                                "futures_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "perp_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                            },
+                            "spot_positions": [
+                                {
+                                    "asset": "USD",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 14.451879,
+                                    "total_balance_crypto": 14.451879,
+                                    "available_to_trade_fiat": 14.451879,
+                                    "allocation": 0.42210168,
+                                    "cost_basis": {
+                                        "value": "14.4518782",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "",
+                                    "is_cash": True,
+                                    "average_entry_price": {
+                                        "value": "1",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "",
+                                    "available_to_trade_crypto": 14.451879,
+                                    "unrealized_pnl": 0,
+                                    "available_to_transfer_fiat": 14.451879,
+                                    "available_to_transfer_crypto": 14.451879,
+                                    "asset_color": "",
+                                    "account_type": "ACCOUNT_TYPE_FIAT",
+                                },
+                                {
+                                    "asset": "BTC",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 17.957708,
+                                    "total_balance_crypto": 0.00019549,
+                                    "available_to_trade_fiat": 17.957708,
+                                    "allocation": 0.5244978,
+                                    "cost_basis": {
+                                        "value": "13.50000000000684847199999829645944",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/e785e0181f1a23a30d9476038d9be91e9f6c63959b538eabbc51a1abc8898940383291eede695c3b8dfaa1829a9b57f5a2d0a16b0523580346c6b8fab67af14b/asset_icons/b57ac673f06a4b0338a596817eb0a50ce16e2059f327dc117744449a47915cb2.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "68237.5635980966492348",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.00019549,
+                                    "unrealized_pnl": 4.4577074,
+                                    "available_to_transfer_fiat": 17.957708,
+                                    "available_to_transfer_crypto": 0.00019549,
+                                    "asset_color": "#F7931A",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                                {
+                                    "asset": "RPL",
+                                    "account_uuid": "a37d36a4-7279-5d65-b709-fc7385451a49",
+                                    "total_balance_fiat": 1.8283211,
+                                    "total_balance_crypto": 0.18965986,
+                                    "available_to_trade_fiat": 1.8283211,
+                                    "allocation": 0.05340049,
+                                    "cost_basis": {
+                                        "value": "1.99530884476868382055978618631603",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/72e5ba829999c87e8ae53eaa31a6553272e796c0dfefe263319b62585abffdd3ff730550e3db1f3a549dfa4a93bb5b76f10036d4cdfd7b3ac63ac2e4e9546fd3/asset_icons/04c6e3d4d94d09fef38322551bdebb0865eb3e0d910d0a89a02d2a207f1ace68.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "10.4420939925424786",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.18965986,
+                                    "unrealized_pnl": -0.16698779,
+                                    "available_to_transfer_fiat": 1.8283211,
+                                    "available_to_transfer_crypto": 0.18965986,
+                                    "asset_color": "#FF9774",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                            ],
+                            "perp_positions": [],
+                            "futures_positions": [],
+                        },
+                        "positions": positions_in_loss,
+                        "product": {"product_id": "BTC-USD"},
+                        "config": {
+                            "config_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                            "config_name": "BTC-USD",
+                            "toggle": True,
+                            "profit_target": 1.01,
+                            "config_quote_min_size": 10,
+                            "config_quote_max_size": 100,
+                            "buy": "market_market_ioc",
+                            "sell": "market_market_ioc",
+                            "base_increment": 0.000001,
+                            "quote_increment": 0.01,
+                            "base_min_size": 0.00001,
+                            "base_max_size": 100,
+                            "status": "online",
+                            "cancel_only": False,
+                            "limit_only": False,
+                            "post_only": False,
+                            "trading_disabled": False,
+                            "strategy_type": "MOMENTUM",
+                        },
+                        "strategy_term": "MEDIUM_TERM",
+                        "side": "SELL",
+                    }
+                ),
+            }
+        ]
+    }
+
+@pytest.fixture
+def sqs_strategy_no_side_event(positions):
+    return {
+        "Records": [
+            {
+                "messageId": "c80e8021-a70a-42c7-a470-796e1186f753",
+                "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                "body": json.dumps(
+                    {
+                        "correlation_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                        "provider": "COINBASE",
+                        "product_id": "BTC-USD",
+                        "portfolio": {
+                            "portfolio": {
+                                "name": "test",
+                                "uuid": "portfolio-uuid",
+                                "type": "CONSUMER",
+                                "deleted": False,
+                            },
+                            "portfolio_balances": {
+                                "total_balance": {
+                                    "value": "10000.23",
+                                    "currency": "USD",
+                                },
+                                "total_futures_balance": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "total_cash_equivalent_balance": {
+                                    "value": "14.45",
+                                    "currency": "USD",
+                                },
+                                "total_crypto_balance": {
+                                    "value": "19.78",
+                                    "currency": "USD",
+                                },
+                                "futures_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "perp_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                            },
+                            "spot_positions": [
+                                {
+                                    "asset": "USD",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 14.451879,
+                                    "total_balance_crypto": 14.451879,
+                                    "available_to_trade_fiat": 14.451879,
+                                    "allocation": 0.42210168,
+                                    "cost_basis": {
+                                        "value": "14.4518782",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "",
+                                    "is_cash": True,
+                                    "average_entry_price": {
+                                        "value": "1",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "",
+                                    "available_to_trade_crypto": 14.451879,
+                                    "unrealized_pnl": 0,
+                                    "available_to_transfer_fiat": 14.451879,
+                                    "available_to_transfer_crypto": 14.451879,
+                                    "asset_color": "",
+                                    "account_type": "ACCOUNT_TYPE_FIAT",
+                                },
+                                {
+                                    "asset": "BTC",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 17.957708,
+                                    "total_balance_crypto": 0.00019549,
+                                    "available_to_trade_fiat": 17.957708,
+                                    "allocation": 0.5244978,
+                                    "cost_basis": {
+                                        "value": "13.50000000000684847199999829645944",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/e785e0181f1a23a30d9476038d9be91e9f6c63959b538eabbc51a1abc8898940383291eede695c3b8dfaa1829a9b57f5a2d0a16b0523580346c6b8fab67af14b/asset_icons/b57ac673f06a4b0338a596817eb0a50ce16e2059f327dc117744449a47915cb2.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "68237.5635980966492348",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.00019549,
+                                    "unrealized_pnl": 4.4577074,
+                                    "available_to_transfer_fiat": 17.957708,
+                                    "available_to_transfer_crypto": 0.00019549,
+                                    "asset_color": "#F7931A",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                                {
+                                    "asset": "RPL",
+                                    "account_uuid": "a37d36a4-7279-5d65-b709-fc7385451a49",
+                                    "total_balance_fiat": 1.8283211,
+                                    "total_balance_crypto": 0.18965986,
+                                    "available_to_trade_fiat": 1.8283211,
+                                    "allocation": 0.05340049,
+                                    "cost_basis": {
+                                        "value": "1.99530884476868382055978618631603",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/72e5ba829999c87e8ae53eaa31a6553272e796c0dfefe263319b62585abffdd3ff730550e3db1f3a549dfa4a93bb5b76f10036d4cdfd7b3ac63ac2e4e9546fd3/asset_icons/04c6e3d4d94d09fef38322551bdebb0865eb3e0d910d0a89a02d2a207f1ace68.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "10.4420939925424786",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.18965986,
+                                    "unrealized_pnl": -0.16698779,
+                                    "available_to_transfer_fiat": 1.8283211,
+                                    "available_to_transfer_crypto": 0.18965986,
+                                    "asset_color": "#FF9774",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                            ],
+                            "perp_positions": [],
+                            "futures_positions": [],
+                        },
+                        "positions": positions,
+                        "product": {"product_id": "BTC-USD"},
+                        "config": {
+                            "config_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                            "config_name": "BTC-USD",
+                            "toggle": True,
+                            "profit_target": 1.01,
+                            "config_quote_min_size": 10,
+                            "config_quote_max_size": 100,
+                            "buy": "market_market_ioc",
+                            "sell": "market_market_ioc",
+                            "base_increment": 0.000001,
+                            "quote_increment": 0.01,
+                            "base_min_size": 0.00001,
+                            "base_max_size": 100,
+                            "status": "online",
+                            "cancel_only": False,
+                            "limit_only": False,
+                            "post_only": False,
+                            "trading_disabled": False,
+                            "strategy_type": "MOMENTUM",
+                        },
+                        "strategy_term": "MEDIUM_TERM"
+                    }
+                ),
+            }
+        ]
+    }
+
+
+@pytest.fixture
+def sqs_strategy_event_existing_positions(positions):
+    return {
+        "Records": [
+            {
+                "messageId": "c80e8021-a70a-42c7-a470-796e1186f753",
+                "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                "body": json.dumps(
+                    {
+                        "correlation_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                        "provider": "COINBASE",
+                        "product_id": "BTC-USD",
+                        "portfolio": {
+                            "portfolio": {
+                                "name": "test",
+                                "uuid": "portfolio-uuid",
+                                "type": "CONSUMER",
+                                "deleted": False,
+                            },
+                            "portfolio_balances": {
+                                "total_balance": {
+                                    "value": "10000.23",
+                                    "currency": "USD",
+                                },
+                                "total_futures_balance": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "total_cash_equivalent_balance": {
+                                    "value": "14.45",
+                                    "currency": "USD",
+                                },
+                                "total_crypto_balance": {
+                                    "value": "19.78",
+                                    "currency": "USD",
+                                },
+                                "futures_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "perp_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                            },
+                            "spot_positions": [
+                                {
+                                    "asset": "USD",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 14.451879,
+                                    "total_balance_crypto": 14.451879,
+                                    "available_to_trade_fiat": 14.451879,
+                                    "allocation": 0.42210168,
+                                    "cost_basis": {
+                                        "value": "14.4518782",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "",
+                                    "is_cash": True,
+                                    "average_entry_price": {
+                                        "value": "1",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "",
+                                    "available_to_trade_crypto": 14.451879,
+                                    "unrealized_pnl": 0,
+                                    "available_to_transfer_fiat": 14.451879,
+                                    "available_to_transfer_crypto": 14.451879,
+                                    "asset_color": "",
+                                    "account_type": "ACCOUNT_TYPE_FIAT",
+                                },
+                                {
+                                    "asset": "BTC",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 17.957708,
+                                    "total_balance_crypto": 0.00019549,
+                                    "available_to_trade_fiat": 17.957708,
+                                    "allocation": 0.5244978,
+                                    "cost_basis": {
+                                        "value": "13.50000000000684847199999829645944",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/e785e0181f1a23a30d9476038d9be91e9f6c63959b538eabbc51a1abc8898940383291eede695c3b8dfaa1829a9b57f5a2d0a16b0523580346c6b8fab67af14b/asset_icons/b57ac673f06a4b0338a596817eb0a50ce16e2059f327dc117744449a47915cb2.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "68237.5635980966492348",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.00019549,
+                                    "unrealized_pnl": 4.4577074,
+                                    "available_to_transfer_fiat": 17.957708,
+                                    "available_to_transfer_crypto": 0.00019549,
+                                    "asset_color": "#F7931A",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                                {
+                                    "asset": "RPL",
+                                    "account_uuid": "a37d36a4-7279-5d65-b709-fc7385451a49",
+                                    "total_balance_fiat": 1.8283211,
+                                    "total_balance_crypto": 0.18965986,
+                                    "available_to_trade_fiat": 1.8283211,
+                                    "allocation": 0.05340049,
+                                    "cost_basis": {
+                                        "value": "1.99530884476868382055978618631603",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/72e5ba829999c87e8ae53eaa31a6553272e796c0dfefe263319b62585abffdd3ff730550e3db1f3a549dfa4a93bb5b76f10036d4cdfd7b3ac63ac2e4e9546fd3/asset_icons/04c6e3d4d94d09fef38322551bdebb0865eb3e0d910d0a89a02d2a207f1ace68.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "10.4420939925424786",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.18965986,
+                                    "unrealized_pnl": -0.16698779,
+                                    "available_to_transfer_fiat": 1.8283211,
+                                    "available_to_transfer_crypto": 0.18965986,
+                                    "asset_color": "#FF9774",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                            ],
+                            "perp_positions": [],
+                            "futures_positions": [],
+                        },
+                        "positions": positions,
+                        "product": {"product_id": "BTC-USD"},
+                        "config": {
+                            "config_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                            "config_name": "BTC-USD",
+                            "toggle": True,
+                            "profit_target": 1.01,
+                            "config_quote_min_size": 10,
+                            "config_quote_max_size": 100,
+                            "buy": "market_market_ioc",
+                            "sell": "market_market_ioc",
+                            "base_increment": 0.000001,
+                            "quote_increment": 0.01,
+                            "base_min_size": 0.00001,
+                            "base_max_size": 100,
+                            "status": "online",
+                            "cancel_only": False,
+                            "limit_only": False,
+                            "post_only": False,
+                            "trading_disabled": False,
+                            "strategy_type": "MOMENTUM",
+                        },
+                        "strategy_term": "MEDIUM_TERM",
+                    }
+                ),
+            }
+        ]
+    }
+
+
+@pytest.fixture
+def sqs_strategy_event_existing_positions_buy(positions):
+    return {
+        "Records": [
+            {
+                "messageId": "c80e8021-a70a-42c7-a470-796e1186f753",
+                "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                "body": json.dumps(
+                    {
+                        "correlation_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                        "provider": "COINBASE",
+                        "product_id": "BTC-USD",
+                        "portfolio": {
+                            "portfolio": {
+                                "name": "test",
+                                "uuid": "portfolio-uuid",
+                                "type": "CONSUMER",
+                                "deleted": False,
+                            },
+                            "portfolio_balances": {
+                                "total_balance": {
+                                    "value": "10000.23",
+                                    "currency": "USD",
+                                },
+                                "total_futures_balance": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "total_cash_equivalent_balance": {
+                                    "value": "14.45",
+                                    "currency": "USD",
+                                },
+                                "total_crypto_balance": {
+                                    "value": "19.78",
+                                    "currency": "USD",
+                                },
+                                "futures_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "perp_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                            },
+                            "spot_positions": [
+                                {
+                                    "asset": "USD",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 14.451879,
+                                    "total_balance_crypto": 14.451879,
+                                    "available_to_trade_fiat": 14.451879,
+                                    "allocation": 0.42210168,
+                                    "cost_basis": {
+                                        "value": "14.4518782",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "",
+                                    "is_cash": True,
+                                    "average_entry_price": {
+                                        "value": "1",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "",
+                                    "available_to_trade_crypto": 14.451879,
+                                    "unrealized_pnl": 0,
+                                    "available_to_transfer_fiat": 14.451879,
+                                    "available_to_transfer_crypto": 14.451879,
+                                    "asset_color": "",
+                                    "account_type": "ACCOUNT_TYPE_FIAT",
+                                },
+                                {
+                                    "asset": "BTC",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 17.957708,
+                                    "total_balance_crypto": 0.00019549,
+                                    "available_to_trade_fiat": 17.957708,
+                                    "allocation": 0.5244978,
+                                    "cost_basis": {
+                                        "value": "13.50000000000684847199999829645944",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/e785e0181f1a23a30d9476038d9be91e9f6c63959b538eabbc51a1abc8898940383291eede695c3b8dfaa1829a9b57f5a2d0a16b0523580346c6b8fab67af14b/asset_icons/b57ac673f06a4b0338a596817eb0a50ce16e2059f327dc117744449a47915cb2.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "68237.5635980966492348",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.00019549,
+                                    "unrealized_pnl": 4.4577074,
+                                    "available_to_transfer_fiat": 17.957708,
+                                    "available_to_transfer_crypto": 0.00019549,
+                                    "asset_color": "#F7931A",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                                {
+                                    "asset": "RPL",
+                                    "account_uuid": "a37d36a4-7279-5d65-b709-fc7385451a49",
+                                    "total_balance_fiat": 1.8283211,
+                                    "total_balance_crypto": 0.18965986,
+                                    "available_to_trade_fiat": 1.8283211,
+                                    "allocation": 0.05340049,
+                                    "cost_basis": {
+                                        "value": "1.99530884476868382055978618631603",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/72e5ba829999c87e8ae53eaa31a6553272e796c0dfefe263319b62585abffdd3ff730550e3db1f3a549dfa4a93bb5b76f10036d4cdfd7b3ac63ac2e4e9546fd3/asset_icons/04c6e3d4d94d09fef38322551bdebb0865eb3e0d910d0a89a02d2a207f1ace68.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "10.4420939925424786",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.18965986,
+                                    "unrealized_pnl": -0.16698779,
+                                    "available_to_transfer_fiat": 1.8283211,
+                                    "available_to_transfer_crypto": 0.18965986,
+                                    "asset_color": "#FF9774",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                            ],
+                            "perp_positions": [],
+                            "futures_positions": [],
+                        },
+                        "positions": positions,
+                        "product": {"product_id": "BTC-USD"},
+                        "config": {
+                            "config_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                            "config_name": "BTC-USD",
+                            "toggle": True,
+                            "profit_target": 1.01,
+                            "config_quote_min_size": 10,
+                            "config_quote_max_size": 100,
+                            "buy": "market_market_ioc",
+                            "sell": "market_market_ioc",
+                            "base_increment": 0.000001,
+                            "quote_increment": 0.01,
+                            "base_min_size": 0.00001,
+                            "base_max_size": 100,
+                            "status": "online",
+                            "cancel_only": False,
+                            "limit_only": False,
+                            "post_only": False,
+                            "trading_disabled": False,
+                            "strategy_type": "MOMENTUM",
+                        },
+                        "strategy_term": "MEDIUM_TERM",
+                        "side": "BUY"
+                    }
+                ),
+            }
+        ]
+    }
+
+
+@pytest.fixture
+def sqs_strategy_event_existing_positions_sell(positions):
+    return {
+        "Records": [
+            {
+                "messageId": "c80e8021-a70a-42c7-a470-796e1186f753",
+                "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                "body": json.dumps(
+                    {
+                        "correlation_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                        "provider": "COINBASE",
+                        "product_id": "BTC-USD",
+                        "portfolio": {
+                            "portfolio": {
+                                "name": "test",
+                                "uuid": "portfolio-uuid",
+                                "type": "CONSUMER",
+                                "deleted": False,
+                            },
+                            "portfolio_balances": {
+                                "total_balance": {
+                                    "value": "10000.23",
+                                    "currency": "USD",
+                                },
+                                "total_futures_balance": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "total_cash_equivalent_balance": {
+                                    "value": "14.45",
+                                    "currency": "USD",
+                                },
+                                "total_crypto_balance": {
+                                    "value": "19.78",
+                                    "currency": "USD",
+                                },
+                                "futures_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "perp_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                            },
+                            "spot_positions": [
+                                {
+                                    "asset": "USD",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 14.451879,
+                                    "total_balance_crypto": 14.451879,
+                                    "available_to_trade_fiat": 14.451879,
+                                    "allocation": 0.42210168,
+                                    "cost_basis": {
+                                        "value": "14.4518782",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "",
+                                    "is_cash": True,
+                                    "average_entry_price": {
+                                        "value": "1",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "",
+                                    "available_to_trade_crypto": 14.451879,
+                                    "unrealized_pnl": 0,
+                                    "available_to_transfer_fiat": 14.451879,
+                                    "available_to_transfer_crypto": 14.451879,
+                                    "asset_color": "",
+                                    "account_type": "ACCOUNT_TYPE_FIAT",
+                                },
+                                {
+                                    "asset": "BTC",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 17.957708,
+                                    "total_balance_crypto": 0.00019549,
+                                    "available_to_trade_fiat": 17.957708,
+                                    "allocation": 0.5244978,
+                                    "cost_basis": {
+                                        "value": "13.50000000000684847199999829645944",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/e785e0181f1a23a30d9476038d9be91e9f6c63959b538eabbc51a1abc8898940383291eede695c3b8dfaa1829a9b57f5a2d0a16b0523580346c6b8fab67af14b/asset_icons/b57ac673f06a4b0338a596817eb0a50ce16e2059f327dc117744449a47915cb2.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "68237.5635980966492348",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.00019549,
+                                    "unrealized_pnl": 4.4577074,
+                                    "available_to_transfer_fiat": 17.957708,
+                                    "available_to_transfer_crypto": 0.00019549,
+                                    "asset_color": "#F7931A",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                                {
+                                    "asset": "RPL",
+                                    "account_uuid": "a37d36a4-7279-5d65-b709-fc7385451a49",
+                                    "total_balance_fiat": 1.8283211,
+                                    "total_balance_crypto": 0.18965986,
+                                    "available_to_trade_fiat": 1.8283211,
+                                    "allocation": 0.05340049,
+                                    "cost_basis": {
+                                        "value": "1.99530884476868382055978618631603",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/72e5ba829999c87e8ae53eaa31a6553272e796c0dfefe263319b62585abffdd3ff730550e3db1f3a549dfa4a93bb5b76f10036d4cdfd7b3ac63ac2e4e9546fd3/asset_icons/04c6e3d4d94d09fef38322551bdebb0865eb3e0d910d0a89a02d2a207f1ace68.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "10.4420939925424786",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.18965986,
+                                    "unrealized_pnl": -0.16698779,
+                                    "available_to_transfer_fiat": 1.8283211,
+                                    "available_to_transfer_crypto": 0.18965986,
+                                    "asset_color": "#FF9774",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                            ],
+                            "perp_positions": [],
+                            "futures_positions": [],
+                        },
+                        "positions": positions,
+                        "product": {"product_id": "BTC-USD"},
+                        "config": {
+                            "config_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                            "config_name": "BTC-USD",
+                            "toggle": True,
+                            "profit_target": 1.01,
+                            "config_quote_min_size": 10,
+                            "config_quote_max_size": 100,
+                            "buy": "market_market_ioc",
+                            "sell": "market_market_ioc",
+                            "base_increment": 0.000001,
+                            "quote_increment": 0.01,
+                            "base_min_size": 0.00001,
+                            "base_max_size": 100,
+                            "status": "online",
+                            "cancel_only": False,
+                            "limit_only": False,
+                            "post_only": False,
+                            "trading_disabled": False,
+                            "strategy_type": "MOMENTUM",
+                        },
+                        "strategy_term": "MEDIUM_TERM",
+                        "side": "SELL",
+                    }
+                ),
+            }
+        ]
+    }
+
+@pytest.fixture
+def sqs_strategy_event_no_positions():
+    return {
+        "Records": [
+            {
+                "messageId": "c80e8021-a70a-42c7-a470-796e1186f753",
+                "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                "body": json.dumps(
+                    {
+                        "correlation_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                        "provider": "COINBASE",
+                        "product_id": "BTC-USD",
+                        "portfolio": {
+                            "portfolio": {
+                                "name": "test",
+                                "uuid": "portfolio-uuid",
+                                "type": "CONSUMER",
+                                "deleted": False,
+                            },
+                            "portfolio_balances": {
+                                "total_balance": {
+                                    "value": "10000.23",
+                                    "currency": "USD",
+                                },
+                                "total_futures_balance": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "total_cash_equivalent_balance": {
+                                    "value": "14.45",
+                                    "currency": "USD",
+                                },
+                                "total_crypto_balance": {
+                                    "value": "19.78",
+                                    "currency": "USD",
+                                },
+                                "futures_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                                "perp_unrealized_pnl": {
+                                    "value": "0",
+                                    "currency": "USD",
+                                },
+                            },
+                            "spot_positions": [
+                                {
+                                    "asset": "USD",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 14.451879,
+                                    "total_balance_crypto": 14.451879,
+                                    "available_to_trade_fiat": 14.451879,
+                                    "allocation": 0.42210168,
+                                    "cost_basis": {
+                                        "value": "14.4518782",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "",
+                                    "is_cash": True,
+                                    "average_entry_price": {
+                                        "value": "1",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "",
+                                    "available_to_trade_crypto": 14.451879,
+                                    "unrealized_pnl": 0,
+                                    "available_to_transfer_fiat": 14.451879,
+                                    "available_to_transfer_crypto": 14.451879,
+                                    "asset_color": "",
+                                    "account_type": "ACCOUNT_TYPE_FIAT",
+                                },
+                                {
+                                    "asset": "BTC",
+                                    "account_uuid": "account-uuid",
+                                    "total_balance_fiat": 17.957708,
+                                    "total_balance_crypto": 0.00019549,
+                                    "available_to_trade_fiat": 17.957708,
+                                    "allocation": 0.5244978,
+                                    "cost_basis": {
+                                        "value": "13.50000000000684847199999829645944",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/e785e0181f1a23a30d9476038d9be91e9f6c63959b538eabbc51a1abc8898940383291eede695c3b8dfaa1829a9b57f5a2d0a16b0523580346c6b8fab67af14b/asset_icons/b57ac673f06a4b0338a596817eb0a50ce16e2059f327dc117744449a47915cb2.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "68237.5635980966492348",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.00019549,
+                                    "unrealized_pnl": 4.4577074,
+                                    "available_to_transfer_fiat": 17.957708,
+                                    "available_to_transfer_crypto": 0.00019549,
+                                    "asset_color": "#F7931A",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                                {
+                                    "asset": "RPL",
+                                    "account_uuid": "a37d36a4-7279-5d65-b709-fc7385451a49",
+                                    "total_balance_fiat": 1.8283211,
+                                    "total_balance_crypto": 0.18965986,
+                                    "available_to_trade_fiat": 1.8283211,
+                                    "allocation": 0.05340049,
+                                    "cost_basis": {
+                                        "value": "1.99530884476868382055978618631603",
+                                        "currency": "USD",
+                                    },
+                                    "asset_img_url": "https://dynamic-assets.coinbase.com/72e5ba829999c87e8ae53eaa31a6553272e796c0dfefe263319b62585abffdd3ff730550e3db1f3a549dfa4a93bb5b76f10036d4cdfd7b3ac63ac2e4e9546fd3/asset_icons/04c6e3d4d94d09fef38322551bdebb0865eb3e0d910d0a89a02d2a207f1ace68.png",
+                                    "is_cash": False,
+                                    "average_entry_price": {
+                                        "value": "10.4420939925424786",
+                                        "currency": "USD",
+                                    },
+                                    "asset_uuid": "asset-uuid",
+                                    "available_to_trade_crypto": 0.18965986,
+                                    "unrealized_pnl": -0.16698779,
+                                    "available_to_transfer_fiat": 1.8283211,
+                                    "available_to_transfer_crypto": 0.18965986,
+                                    "asset_color": "#FF9774",
+                                    "account_type": "ACCOUNT_TYPE_WALLET",
+                                },
+                            ],
+                            "perp_positions": [],
+                            "futures_positions": [],
+                        },
+                        "positions": [],
+                        "product": {"product_id": "BTC-USD"},
+                        "config": {
+                            "config_id": "01D9GQZ2R1T0Z6ZQ0X6W0M1Z4Z",
+                            "config_name": "BTC-USD",
+                            "toggle": True,
+                            "profit_target": 1.01,
+                            "config_quote_min_size": 10,
+                            "config_quote_max_size": 100,
+                            "buy": "market_market_ioc",
+                            "sell": "market_market_ioc",
+                            "base_increment": 0.000001,
+                            "quote_increment": 0.01,
+                            "base_min_size": 0.00001,
+                            "base_max_size": 100,
+                            "status": "online",
+                            "cancel_only": False,
+                            "limit_only": False,
+                            "post_only": False,
+                            "trading_disabled": False,
+                            "strategy_type": "MOMENTUM",
+                        },
+                        "strategy_term": "MEDIUM_TERM",
+                    }
+                ),
+            }
+        ]
+    }
+
+
+@pytest.fixture
+def mock_get_provider_product_candles(requests_mock, product_id):
+    def wrapper(historical_data):
+        return requests_mock.get(
+            f"{Env.PROVIDER_URL}/api/v3/brokerage/products/{product_id}/candles",
+            json={
+                "candles": historical_data or [
+                    {
+                        "start": "1743890400",
+                        "low": "82700",
+                        "high": "82900",
+                        "open": "82800",
+                        "close": "82850",
+                        "volume": "100.0"
+                    },
+                    {
+                        "start": "1743888600",
+                        "low": "82800",
+                        "high": "83000",
+                        "open": "82850",
+                        "close": "82950",
+                        "volume": "110.0"
+                    }
+                ]
+            },
+            status_code=HTTPStatus.OK,
+        )
+    return wrapper
+
+
+@pytest.fixture
+def historical_data_confirm_buy():
+    return [
+        {"start": "1743890400", "low": "82650", "high": "82900", "open": "82650", "close": "82780", "volume": "100.0"},  # Bullish
+        {"start": "1743888600", "low": "82640", "high": "82950", "open": "82779", "close": "82660", "volume": "110.0"},  # Bearish
+        {"start": "1743886800", "low": "82630", "high": "82980", "open": "82700", "close": "82650", "volume": "96.0"},
+        {"start": "1743885000", "low": "82620", "high": "82900", "open": "82650", "close": "82680", "volume": "120.0"},
+        {"start": "1743883200", "low": "82610", "high": "82900", "open": "82680", "close": "82690", "volume": "81.0"},
+    ]
+
+
+@pytest.fixture
+def historical_data_confirm_sell():
+    return [
+        {"start": "1743890400", "low": "82650", "high": "82900", "open": "82680", "close": "82780", "volume": "100.0"},  # Bullish
+        {"start": "1743888600", "low": "82640", "high": "82950", "open": "82800", "close": "82660", "volume": "110.0"},  # Bearish
+        {"start": "1743886800", "low": "82630", "high": "82980", "open": "82700", "close": "82649", "volume": "96.0"},
+        {"start": "1743885000", "low": "82620", "high": "82900", "open": "82650", "close": "82680", "volume": "120.0"},
+        {"start": "1743883200", "low": "82610", "high": "82900", "open": "82680", "close": "82690", "volume": "-81.0"},
+    ]

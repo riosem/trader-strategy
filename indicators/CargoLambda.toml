@@ -1,0 +1,14 @@
+[dev.deploy]
+name = 'trader-indicators-rust-dev'
+binary_name = 'trader-indicators-rust'
+log_retention = 7
+timeout = 60
+role = <role_arn>
+
+
+[prod.deploy]
+name = 'trader-indicators-rust-prod'
+binary_name = 'trader-indicators-rust'
+log_retention = 7
+timeout = 60
+role = <role_arn>

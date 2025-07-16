@@ -1,0 +1,6 @@
+-r requirements.in
+moto
+pytest
+pytest-cov
+pytest-env
+requests-mock
