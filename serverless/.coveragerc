@@ -1,6 +1,7 @@
 [run]
 omit = 
     */serverless/tests/*
+    */serverless/utils/*
 
 [report]
 show_missing = True

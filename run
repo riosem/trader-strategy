@@ -21,7 +21,7 @@ install_serverless_dependencies(){
 run_unit_tests(){
     vars=$(get_vars)
     cd ./serverless
-    pytest -m unit_tests -vv $vars --cov=. --cov-config=.coveragerc || exit 1
+    pytest -vv $vars --cov=. --cov-config=.coveragerc || exit 1
     cd ..
 }
 

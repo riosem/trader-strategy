@@ -79,6 +79,25 @@ def portfolio_balance():
 def portfolio_asset():
     return "USD"
 
+@pytest.fixture
+def portfolio():
+    return {
+        "portfolio": {
+            "name": "test",
+            "uuid": "portfolio-uuid",
+            "type": "CONSUMER",
+            "deleted": False,
+        },
+        "portfolio_balances": {
+            "total_balance": {"value": "10000.23", "currency": "USD"},
+            "total_futures_balance": {"value": "0", "currency": "USD"},
+            "total_cash_equivalent_balance": {"value": "14.45", "currency": "USD"},
+            "total_crypto_balance": {"value": "19.78", "currency": "USD"},
+            "futures_unrealized_pnl": {"value": "0", "currency": "USD"},
+            "perp_unrealized_pnl": {"value": "0", "currency": "USD"},
+        },
+    }
+
 
 @pytest.fixture
 def product(product_id):

@@ -143,9 +143,8 @@ class MomentumStrategy(ProductConfiguration):
             elif self.strategy_term == "MEDIUM_TERM":
                 price_diff_pct_max_threshold = Decimal("-5.0")
                 price_diff_pct_min_threshold = Decimal("-10.0")
-                # price_diff_pct_max_threshold = self.price_diff_pct_max_threshold
-                # price_diff_pct_min_threshold = self.price_diff_pct_min_threshold
-                if price_diff_pct_max_threshold <= diff_pct <= price_diff_pct_min_threshold:  # TODO: Configurable
+                # For MEDIUM_TERM, we return False if the diff_pct is in the restricted range (-10% to -5%)
+                if price_diff_pct_min_threshold <= diff_pct <= price_diff_pct_max_threshold:
                     return False, diff_pct
             elif self.strategy_term == "LONG_TERM":
                 pass
@@ -370,9 +369,8 @@ class MomentumStrategy(ProductConfiguration):
             service=SERVICE,
             operation="ANALYZE_BUY_DATA",
         )
-
+      
         maxmin_diffpct_check_passed, diff_pct = self.validate_price_diff_pct(data)
-        
         if not maxmin_diffpct_check_passed:
             logger.warning(
                 "MAX_MIN_DIFF_PCT_CHECK_FAILED",
@@ -574,6 +572,7 @@ def handler(event, context):
     config_dict = event_body_dict.get("config")
 
     positions = event_body_dict.get("positions", [])
+    assistant_event = event_body_dict.get("assistant_event", False)
 
     logger = log.bind(
         correlation_id=correlation_id,
@@ -627,6 +626,7 @@ def handler(event, context):
     msg_body["strategy_term"] = strategy_term
     msg_body["historical_data"] = historical_data
     msg_body["risk_flags"] = risk_flags
+    msg_body["assistant_event"] = assistant_event
 
     send_message_to_queue(Env.QUEUE_RISK_URL, msg_body)
 
@@ -634,5 +634,5 @@ def handler(event, context):
         "STRATEGY_COMPLETE",
         message="Analyzed product for buying/selling",
         product_id=product_id,
-        provider=provider,
+        provider=provider
     )
