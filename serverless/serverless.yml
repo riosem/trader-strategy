@@ -16,7 +16,6 @@ provider:
     ASSISTANT_API_KEY: ${self:custom.env.assistant_api_key}
     CONFIG_URL: ${self:custom.env.config_url}
     DEBUG: FALSE
-    QUEUE_POST_ORDER_URL: ${self:custom.env.queue_post_order_url}
     QUEUE_DATA_COLLECTION_URL: ${self:custom.env.queue_data_collection_url}
     PROVIDER_URL: ${self:custom.env.provider_url}
     AUTH0_PROVIDERS_CLIENT_ID: ${self:custom.env.auth0_providers_client_id}

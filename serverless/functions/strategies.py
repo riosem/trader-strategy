@@ -583,6 +583,28 @@ def handler(event, context):
         strategy_term=strategy_term,
     )
 
+    # if we receive an assistant event, we should bypass the strategy creation
+    if assistant_event:
+        logger.info(
+            "ASSISTANT_EVENT",
+            message="Received assistant event, bypassing strategy creation",
+            assistant_event=assistant_event,
+        )
+        msg_body = {
+            "portfolio": portfolio,
+            "product": product,
+            "correlation_id": correlation_id,
+            "provider": provider,
+            "config": config_dict,
+            "side": assets_requested_side,
+            "positions": positions,
+            "strategy_term": strategy_term,
+            "risk_flags": risk_flags,
+            "assistant_event": assistant_event
+        }
+        send_message_to_queue(Env.QUEUE_RISK_URL, msg_body)
+        return {"statusCode": 200}
+
     strategy = StrategyHandler.create(
         provider=provider,
         product_id=product_id,
