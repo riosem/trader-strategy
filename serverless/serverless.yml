@@ -38,6 +38,7 @@ provider:
 
 custom:
   stage: ${opt:stage, 'dev'}
+  region: ${opt:region}
   env: ${file(sls_envs.yml):${self:custom.stage}}
   provider_api_key: ${param:provider_api_key, '${self:custom.env.provider_api_key}'}
   config_url: ${param:config_url, '${self:custom.env.config_url}'}
@@ -63,7 +64,7 @@ functions:
   coinbase:
     logRetentionInDays: ${self:custom.logRetentionInDays}
     handler: functions.strategies.handler
-    role: arn:aws:iam::${aws.accountId}:role/${self:service}-role-blue-${self:custom.stage}-${self:provider.region}
+    role: arn:aws:iam::${aws.accountId}:role/${self:service}-role-blue-${self:custom.stage}-${self:custom.region}
     layers:
       - Ref: PythonRequirementsLambdaLayer
     events:
