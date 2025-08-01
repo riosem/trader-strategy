@@ -59,7 +59,7 @@ deploy_serverless(){
     serverless plugin install -n serverless-deployment-bucket
     serverless plugin install -n serverless-python-requirements
     serverless plugin install -n serverless-plugin-log-retention
-    serverless deploy --stage $ENV --region $REGION || exit 1
+    serverless deploy --stage $ENV --region $REGION > /dev/null 2>&1 || exit 1
     rm -r ./.serverless
     cd ..
 }
