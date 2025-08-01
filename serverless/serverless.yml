@@ -6,7 +6,6 @@ provider:
   name: aws
   region: ${opt:region}
   runtime: python3.10
-  accountId: ${aws:accountId}
   deploymentBucket:
     name: serverless-deploy-bucket-global-emr
     serverSideEncryption: AES256
@@ -65,7 +64,7 @@ functions:
   coinbase:
     logRetentionInDays: ${self:custom.logRetentionInDays}
     handler: functions.strategies.handler
-    role: arn:aws:iam::${self:custom.accountId}:role/${self:service}-role-blue-${self:custom.stage}-${self:custom.region}
+    role: arn:aws:iam::${aws:accountId}:role/${self:service}-role-blue-${self:custom.stage}-${self:custom.region}
     layers:
       - Ref: PythonRequirementsLambdaLayer
     events:
